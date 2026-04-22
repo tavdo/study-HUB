@@ -1,7 +1,7 @@
 import search from "../ficture/search.png";
 import add from "../ficture/plus-sign.png";
 
-function Savednote({ notes = [], onDelete, onOpen }) {
+function Savednote({ notes = [], onDelete, onOpen,onAdd }) {
   return (
     <div className="w-100 h-screen bg-gray-50 border-r border-gray-200 flex flex-col">
       <header className="p-6 border-b border-gray-100">
@@ -10,6 +10,7 @@ function Savednote({ notes = [], onDelete, onOpen }) {
           <img
             src={add}
             alt="add"
+            onClick={onAdd}
             className="w-10 h-10 p-2 border-2 border-violet-200 rounded-full bg-white cursor-pointer hover:bg-violet-50 transition-all active:scale-90"
           />
         </div>

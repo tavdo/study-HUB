@@ -25,6 +25,10 @@ function Notes() {
     setTitel("");
     setContent("");
   };
+  const handAdd = () => {
+    setTitel("");
+    setContent("");
+  };
 const openNote = (note) => {
     setTitel(note.title);
     setContent(note.content);
@@ -35,7 +39,7 @@ const openNote = (note) => {
 
   return (
     <div className="flex">
-      <Savednote notes={noteslist} onDelete={deletNote} onOpen={openNote} />
+      <Savednote notes={noteslist} onDelete={deletNote} onOpen={openNote} onAdd={handAdd} />
 
       <div className="flex flex-col">
         <header>
