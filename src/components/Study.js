@@ -6,6 +6,7 @@ import Dashboard from "../pages/Dashboard/Dashboard";
 import AI from "../pages/AI/AI";
 import Library from "../pages/Libery/Library";
 import Group from "../pages/Group/Groups";
+import User from "../pages/users/user";
 
 function Study() {
   return (
@@ -25,6 +26,7 @@ function Study() {
             <Route path="/ai" element={<AI />} />
             <Route path="/Group" element={<Group />} />
             <Route path="/Library" element={<Library />} />
+            <Route path="/user" element={<User />} />
           </Routes>
         </div>
       </div>
