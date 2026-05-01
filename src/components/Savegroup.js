@@ -13,7 +13,7 @@ function Savegroup() {
           />
           <input
             type="text"
-            placeholder="Search Groups..."
+            placeholder="Search User..."
             className="w-full bg-gray-100 rounded-2xl py-3 pl-12 pr-4 text-sm border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
           />
           <img

@@ -8,7 +8,7 @@ function Navigation() {
             <Link className="text-left  px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white" to="/Notes">Notes</Link>
             <Link className="text-left  px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white" to="/Library">Library</Link>
             <Link className="text-left  px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white" to="/User">User</Link>
-            <Link className="text-left  px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white" to="/Group">Group</Link>
+            <Link className="text-left  px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white" to="/Group">Messeges</Link>
             <Link className="text-left  px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white" to="/AI" >AI</Link>
             <Link className="text-left  px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white" to="/Settings">Setting</Link>
             

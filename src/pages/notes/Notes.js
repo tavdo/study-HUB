@@ -88,6 +88,7 @@ const openNote = (note) => {
         </div>
       </div>
     </div>
+    
   );
 }
 

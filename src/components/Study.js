@@ -17,7 +17,7 @@ function Study() {
           <Navigation />
         </div>
 
-        {/* Main content */}
+
         <div className="">
           <Routes>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -29,8 +29,11 @@ function Study() {
             <Route path="/user" element={<User />} />
           </Routes>
         </div>
+ 
       </div>
+    
     </BrowserRouter>
+    
   );
 }
 

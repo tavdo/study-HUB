@@ -3,6 +3,7 @@ function User(){
     return(
         <div>
             <Adduser />
+            
         </div>
     )
 }
