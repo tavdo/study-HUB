@@ -38,7 +38,7 @@ function Notes() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-800">
+    <div className="flex h-screen overflow-hidden bg-[#020d0c]">
       <Savednote
         notes={noteslist}
         onDelete={deletNote}
@@ -46,59 +46,56 @@ function Notes() {
         onAdd={handAdd}
       />
 
-      <div className="flex-1 flex flex-col h-full ">
-        <header className="p-4 border-b border-gray-200 bg-slate-700 flex justify-between items-center">
-          <div className="flex items-center gap-4 px-4">
+      <div className="flex-1 flex flex-col h-full bg-[#020d0c]">
+        <header className="p-4 border-b border-emerald-900/20 bg-[#051614] flex justify-between items-center shadow-md">
+          <div className="flex items-center gap-6 px-4">
             <img
               src={letter}
               alt="B"
-              className="w-6 h-6 cursor-pointer hover:opacity-70"
+              className="w-5 h-5 cursor-pointer opacity-40 hover:opacity-100 hover:scale-110 transition-all brightness-200"
             />
             <img
               src={italic}
               alt="I"
-              className="w-6 h-6 cursor-pointer hover:opacity-70"
+              className="w-5 h-5 cursor-pointer opacity-40 hover:opacity-100 hover:scale-110 transition-all brightness-200"
             />
             <img
               src={list}
               alt="List"
-              className="w-6 h-6 cursor-pointer hover:opacity-70"
+              className="w-5 h-5 cursor-pointer opacity-40 hover:opacity-100 hover:scale-110 transition-all brightness-200"
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-gray-200 cursor-pointer hover:bg-gray-300 transition-all text-sm font-medium">
-              <img src={share} alt="share" className="w-4 h-4" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-950/30 border border-emerald-900/30 text-emerald-400 cursor-pointer hover:bg-emerald-900/40 transition-all text-xs font-bold uppercase tracking-widest">
+              <img src={share} alt="share" className="w-3.5 h-3.5 opacity-70" />
               <span>Share</span>
             </div>
 
             <button
               onClick={handSave}
-              className="flex items-center gap-2 px-6 py-2 rounded-full bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-medium transition-all shadow-md active:scale-95"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#020d0c] text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] active:scale-95"
             >
-              <img
-                src={plane}
-                alt="plane"
-                className="w-4 h-4 invert brightness-0"
-              />
-              <span>Save</span>
+              <img src={plane} alt="plane" className="w-3.5 h-3.5" />
+              <span>Save Note</span>
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 lg:p-16 max-w-5xl mx-auto w-full flex flex-col">
+        <div className="flex-1 flex flex-col p-10 lg:p-20 max-w-5xl mx-auto w-full overflow-hidden">
           <input
             type="text"
-            placeholder="Title"
+            placeholder="Untitled Note"
             value={title}
             onChange={(e) => setTitel(e.target.value)}
-            className="text-5xl font-bold text-slate-800 outline-none mb-8 placeholder:text-slate-100 w-full bg-transparent"
+            className="text-6xl font-black text-emerald-600 outline-none mb-10 w-full  tracking-tighter"
           />
+
           <textarea
-            placeholder="Start writing your notes here..."
+            placeholder="Start your masterpiece here..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="flex-1 text-slate-500 text-xl leading-relaxed outline-none resize-none placeholder:text-slate-100 w-full bg-transparent"
+            className="flex-1 text-emerald-100/70 text-xl leading-[1.8] outline-none resize-none w-fullfont-medium custom-scrollbar"
           ></textarea>
         </div>
       </div>
