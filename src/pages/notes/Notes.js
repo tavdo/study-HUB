@@ -1,83 +1,262 @@
+import { useState, useEffect, useRef } from "react";
 import italic from "../../ficture/italic.png";
 import letter from "../../ficture/letter-b.png";
 import list from "../../ficture/list.png";
 import plane from "../../ficture/paper-plane (1).png";
 import share from "../../ficture/share.png";
 import Savednote from "../../components/savednote";
-import { useState } from "react";
+import { useStudyHub } from "../../context/StudyHubContext";
+import { useFileViewer } from "../../context/FileViewerContext";
+import { fileToLibraryEntry } from "../../utils/fileHelpers";
+import { generateQuizFromText } from "../../utils/quizService";
+import { useNavigate } from "react-router-dom";
+import ka from "../../i18n/ka";
 
 function Notes() {
-  const [noteslist, setNotelist] = useState([]);
-  const [title, setTitel] = useState("");
+  const { notes, addNote, updateNote, deleteNote, addLibraryFile, addQuiz, settings } = useStudyHub();
+  const { openLibraryItem } = useFileViewer();
+  const navigate = useNavigate();
+  const [activeId, setActiveId] = useState(null);
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [attachments, setAttachments] = useState([]);
+  const [search, setSearch] = useState("");
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const textareaRef = useRef(null);
+  const photoInputRef = useRef(null);
+
+  useEffect(() => {
+    if (activeId) {
+      const note = notes.find((n) => n.id === activeId);
+      if (note) {
+        setTitle(note.title);
+        setContent(note.content || "");
+        setAttachments(note.attachments || []);
+      }
+    }
+  }, [activeId, notes]);
+
+  const filteredNotes = notes.filter(
+    (n) =>
+      n.title.toLowerCase().includes(search.toLowerCase()) ||
+      (n.content || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const wrapSelection = (before, after = before) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = content.slice(start, end);
+    const newText =
+      content.slice(0, start) +
+      before +
+      selected +
+      after +
+      content.slice(end);
+    setContent(newText);
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + before.length, end + before.length);
+    }, 0);
+  };
+
+  const addList = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const lineStart = content.lastIndexOf("\n", start - 1) + 1;
+    const newText =
+      content.slice(0, lineStart) + "• " + content.slice(lineStart);
+    setContent(newText);
+  };
 
   const handSave = () => {
-    if (!title.trim() && !content.trim()) return;
+    if (!title.trim() && !content.trim() && !attachments.length) return;
 
-    const newNote = {
-      id: Date.now(),
-      title: title || "Untitled Note",
-      preview: content.substring(0, 40) + "...",
-      date: new Date().toLocaleDateString(),
+    const noteData = {
+      title: title.trim() || ka.notes.untitled,
+      content,
+      attachments,
+      preview:
+        content.length > 40 ? content.substring(0, 40) + "..." : content,
+      date: new Date().toLocaleDateString("ka-GE"),
     };
 
-    setNotelist([newNote, ...noteslist]);
-    setTitel("");
-    setContent("");
+    if (activeId) {
+      updateNote(activeId, noteData);
+    } else {
+      const newNote = { id: Date.now(), ...noteData };
+      addNote(newNote);
+      setActiveId(newNote.id);
+    }
   };
+
   const handAdd = () => {
-    setTitel("");
+    setActiveId(null);
+    setTitle("");
     setContent("");
+    setAttachments([]);
   };
+
   const openNote = (note) => {
-    setTitel(note.title);
-    setContent(note.content);
+    setActiveId(note.id);
+    setTitle(note.title);
+    setContent(note.content || "");
+    setAttachments(note.attachments || []);
   };
+
   const deletNote = (id) => {
-    setNotelist(noteslist.filter((note) => note.id !== id));
+    deleteNote(id);
+    if (activeId === id) handAdd();
+  };
+
+  const handleShare = async () => {
+    const text = `${title}\n\n${content}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text });
+        return;
+      } catch {
+        /* fallback */
+      }
+    }
+    await navigator.clipboard?.writeText(text);
+    alert(ka.notes.copied);
+  };
+
+  const attachPhoto = async (fileList) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    try {
+      const entry = await fileToLibraryEntry(file);
+      addLibraryFile(entry);
+      const att = {
+        fileId: entry.fileId,
+        name: entry.title,
+        type: entry.type,
+        mimeType: entry.mimeType,
+      };
+      setAttachments((prev) => [...prev, att]);
+    } catch {
+      alert(ka.notes.couldNotAttach);
+    }
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const handleGenerateQuiz = async () => {
+    const effectiveTitle = (title || "").trim() || ka.notes.untitled;
+    const effectiveText = `${effectiveTitle}\n\n${content || ""}`.trim();
+    if (!effectiveText) return;
+    if (generatingQuiz) return;
+
+    setGeneratingQuiz(true);
+    try {
+      const generated = await generateQuizFromText({
+        title: ka.notes.quizTitle(effectiveTitle),
+        text: effectiveText,
+        tutorMode: Boolean(settings?.tutorMode),
+      });
+
+      const quiz = {
+        id: `quiz-${Date.now()}`,
+        title: generated.title,
+        createdAt: Date.now(),
+        source: { type: "note", noteId: activeId || null },
+        questions: generated.questions,
+      };
+
+      addQuiz(quiz);
+      navigate("/quiz");
+    } catch {
+      alert(ka.notes.couldNotQuiz);
+    } finally {
+      setGeneratingQuiz(false);
+    }
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#020d0c]">
+    <div className="flex h-screen overflow-hidden bg-transparent">
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => attachPhoto(e.target.files)}
+      />
+
       <Savednote
-        notes={noteslist}
+        notes={filteredNotes}
+        search={search}
+        onSearchChange={setSearch}
         onDelete={deletNote}
         onOpen={openNote}
         onAdd={handAdd}
+        activeId={activeId}
       />
 
-      <div className="flex-1 flex flex-col h-full bg-[#020d0c]">
+      <div className="flex-1 flex flex-col h-full bg-transparent">
         <header className="p-4 border-b border-emerald-900/20 bg-[#051614] flex justify-between items-center shadow-md">
-          <div className="flex items-center gap-6 px-4">
-            <img
-              src={letter}
-              alt="B"
-              className="w-5 h-5 cursor-pointer opacity-40 hover:opacity-100 hover:scale-110 transition-all brightness-200"
-            />
-            <img
-              src={italic}
-              alt="I"
-              className="w-5 h-5 cursor-pointer opacity-40 hover:opacity-100 hover:scale-110 transition-all brightness-200"
-            />
-            <img
-              src={list}
-              alt="List"
-              className="w-5 h-5 cursor-pointer opacity-40 hover:opacity-100 hover:scale-110 transition-all brightness-200"
-            />
+          <div className="flex items-center gap-4 px-4">
+            <button
+              type="button"
+              title="Bold"
+              onClick={() => wrapSelection("**")}
+              className="p-1 opacity-60 hover:opacity-100"
+            >
+              <img src={letter} alt="Bold" className="w-5 h-5 brightness-200" />
+            </button>
+            <button
+              type="button"
+              title="Italic"
+              onClick={() => wrapSelection("_")}
+              className="p-1 opacity-60 hover:opacity-100"
+            >
+              <img src={italic} alt="Italic" className="w-5 h-5 brightness-200" />
+            </button>
+            <button
+              type="button"
+              title="Bullet list"
+              onClick={addList}
+              className="p-1 opacity-60 hover:opacity-100"
+            >
+              <img src={list} alt="List" className="w-5 h-5 brightness-200" />
+            </button>
+            <button
+              type="button"
+              title={ka.notes.photo}
+              onClick={() => photoInputRef.current?.click()}
+              className="px-3 py-1 text-xs font-bold uppercase text-emerald-400 border border-emerald-800/40 rounded-lg hover:bg-emerald-900/30"
+            >
+              🖼 {ka.notes.photo}
+            </button>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-950/30 border border-emerald-900/30 text-emerald-400 cursor-pointer hover:bg-emerald-900/40 transition-all text-xs font-bold uppercase tracking-widest">
-              <img src={share} alt="share" className="w-3.5 h-3.5 opacity-70" />
-              <span>Share</span>
-            </div>
-
             <button
-              onClick={handSave}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#020d0c] text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] active:scale-95"
+              type="button"
+              onClick={handleGenerateQuiz}
+              disabled={generatingQuiz || (!title.trim() && !content.trim())}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl border border-emerald-500/30 text-emerald-300 text-xs font-black uppercase hover:bg-emerald-500/10 disabled:opacity-40"
+              title={ka.notes.quiz}
             >
-              <img src={plane} alt="plane" className="w-3.5 h-3.5" />
-              <span>Save Note</span>
+              {generatingQuiz ? ka.notes.generating : `🧠 ${ka.notes.quiz}`}
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-950/30 border border-emerald-900/30 text-emerald-400 text-xs font-bold uppercase"
+            >
+              <img src={share} alt="" className="w-3.5 h-3.5 opacity-70" />
+              {ka.notes.share}
+            </button>
+            <button
+              type="button"
+              onClick={handSave}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#020d0c] text-xs font-black uppercase"
+            >
+              <img src={plane} alt="" className="w-3.5 h-3.5" />
+              {activeId ? ka.notes.update : ka.notes.save}
             </button>
           </div>
         </header>
@@ -85,18 +264,34 @@ function Notes() {
         <div className="flex-1 flex flex-col p-10 lg:p-20 max-w-5xl mx-auto w-full overflow-hidden">
           <input
             type="text"
-            placeholder="Untitled Note"
+            placeholder={ka.notes.placeholderTitle}
             value={title}
-            onChange={(e) => setTitel(e.target.value)}
-            className="text-6xl font-black text-emerald-600 outline-none mb-10 w-full  tracking-tighter"
+            onChange={(e) => setTitle(e.target.value)}
+            className="text-6xl font-black text-emerald-600 outline-none mb-6 w-full tracking-tighter bg-transparent"
           />
 
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-3 mb-6">
+              {attachments.map((att, i) => (
+                <button
+                  key={`${att.fileId}-${i}`}
+                  type="button"
+                  onClick={() => openLibraryItem(att)}
+                  className="px-4 py-2 bg-emerald-900/30 border border-emerald-700/30 rounded-xl text-sm text-emerald-300 hover:border-emerald-500/50"
+                >
+                  🖼 {att.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           <textarea
-            placeholder="Start your masterpiece here..."
+            ref={textareaRef}
+            placeholder={ka.notes.placeholderBody}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="flex-1 text-emerald-100/70 text-xl leading-[1.8] outline-none resize-none w-fullfont-medium custom-scrollbar"
-          ></textarea>
+            className="flex-1 text-emerald-100/70 text-xl leading-[1.8] outline-none resize-none w-full font-medium custom-scrollbar bg-transparent"
+          />
         </div>
       </div>
     </div>

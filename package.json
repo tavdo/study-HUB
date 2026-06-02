@@ -2,9 +2,8 @@
   "name": "likafinalproject",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:5050",
   "dependencies": {
-    "@tailwindcss/cli": "^4.2.2",
-    "@tailwindcss/vite": "^4.2.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -19,7 +18,12 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "server": "npm --prefix server start",
+    "db:up": "docker compose up -d",
+    "db:up:sudo": "sudo docker compose up -d",
+    "db:down": "docker compose down",
+    "db:setup": "npm --prefix server run db:setup"
   },
   "eslintConfig": {
     "extends": [

@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
   margin: 0;
   font-family:
@@ -10,4 +14,185 @@ body {
 code {
   font-family:
     source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+.animated-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.animated-bg__grid {
+  position: absolute;
+  inset: -40%;
+  background-image:
+    linear-gradient(rgba(16, 185, 129, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.06) 1px, transparent 1px);
+  background-size: 70px 70px;
+  transform: rotate(-12deg);
+  opacity: 0.35;
+  animation: bg-grid-drift 18s ease-in-out infinite;
+  mask-image: radial-gradient(circle at 30% 40%, black 25%, transparent 70%);
+}
+
+.animated-bg__stripes {
+  position: absolute;
+  inset: -60%;
+  transform: rotate(18deg);
+  opacity: 0.35;
+  /* many thin lines */
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.0) 0px,
+    rgba(16, 185, 129, 0.0) 10px,
+    rgba(16, 185, 129, 0.22) 10px,
+    rgba(16, 185, 129, 0.22) 12px
+  );
+  /* make them look like short segments (dashes) */
+  mask-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 1) 0px,
+      rgba(0, 0, 0, 1) 16px,
+      rgba(0, 0, 0, 0) 16px,
+      rgba(0, 0, 0, 0) 26px
+    );
+  mask-size: 100% 100%;
+  filter: blur(0.15px);
+  animation: bg-stripes-slide 18s linear infinite;
+}
+
+.animated-bg__blob {
+  position: absolute;
+  width: 720px;
+  height: 720px;
+  border-radius: 9999px;
+  filter: blur(110px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.animated-bg__blob--one {
+  left: -220px;
+  top: -260px;
+  background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.9), transparent 60%);
+  animation: bg-blob-1 16s ease-in-out infinite;
+}
+
+.animated-bg__blob--two {
+  right: -260px;
+  top: 10%;
+  background: radial-gradient(circle at 30% 30%, rgba(34, 197, 94, 0.65), transparent 62%);
+  animation: bg-blob-2 20s ease-in-out infinite;
+}
+
+.animated-bg__blob--three {
+  left: 10%;
+  bottom: -320px;
+  background: radial-gradient(circle at 30% 30%, rgba(20, 184, 166, 0.55), transparent 62%);
+  animation: bg-blob-3 22s ease-in-out infinite;
+}
+
+.animated-bg__particles {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  background-image:
+    radial-gradient(rgba(16, 185, 129, 0.9) 1px, transparent 1px),
+    radial-gradient(rgba(16, 185, 129, 0.6) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px);
+  background-size: 120px 120px, 180px 180px, 260px 260px;
+  background-position: 0 0, 40px 60px, 80px 30px;
+  animation: bg-particles-float 26s linear infinite;
+  mask-image: radial-gradient(circle at 60% 40%, black 30%, transparent 75%);
+}
+
+@keyframes bg-grid-drift {
+  0% {
+    transform: rotate(-12deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotate(-12deg) translate3d(70px, -30px, 0);
+  }
+  100% {
+    transform: rotate(-12deg) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes bg-stripes-slide {
+  0% {
+    transform: rotate(18deg) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: rotate(18deg) translate3d(-260px, 160px, 0);
+  }
+}
+
+@keyframes bg-blob-1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(120px, 60px, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes bg-blob-2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-120px, 90px, 0) scale(0.95);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes bg-blob-3 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(90px, -80px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes bg-particles-float {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-140px, -220px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-bg__grid,
+  .animated-bg__stripes,
+  .animated-bg__blob,
+  .animated-bg__particles {
+    animation: none !important;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.25);
+  border-radius: 3px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

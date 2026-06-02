@@ -1,0 +1,22 @@
+# PostgreSQL Study Hub-ისთვის — გაშვება: docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: studyhub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: studyhub
+      POSTGRES_PASSWORD: studyhub_dev
+      POSTGRES_DB: studyhub_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - studyhub_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studyhub -d studyhub_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  studyhub_pg_data:

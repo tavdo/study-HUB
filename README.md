@@ -1,70 +1,95 @@
-# Getting Started with Create React App
+# Study Hub
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An all-in-one AI-powered study companion built with React.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Dashboard** — Live stats from your notes, groups, and library
+- **Notes** — Create, edit, search, share, and delete notes (saved in browser)
+- **Library** — Upload files, add video links, search and filter
+- **Users** — Browse, search, filter, and add users
+- **Messages** — Group chat with multiple groups
+- **AI Assistant** — Smart study replies (optional OpenAI API key)
+- **Settings** — Profile and notification preferences (persisted locally)
 
-### `npm start`
+## Quick start
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+npm install
+npm start
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Open [http://localhost:3000](http://localhost:3000) and click **Let's Start**.
 
-### `npm test`
+## Optional: Real OpenAI responses
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Copy `.env.example` to `.env`
+2. Add your key: `REACT_APP_OPENAI_API_KEY=sk-...`
+3. Restart `npm start`
 
-### `npm run build`
+Without a key, the app uses built-in study-assistant responses.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Free local AI (recommended): Ollama
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+You can run a **free** AI locally (no API key) using Ollama + a small Node proxy server.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Install Ollama and pull a model (example):
 
-### `npm run eject`
+```bash
+ollama pull llama3.1:8b
+ollama serve
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+2. Start the AI proxy server:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm run server
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+3. Enable local AI in the frontend:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. Copy `.env.example` to `.env`
+2. Set `REACT_APP_USE_LOCAL_AI=true`
+3. Restart `npm start`
 
-## Learn More
+Now quiz generation + AI chat will use Ollama when available, and fall back to the built-in assistant if the server is off.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Build & deploy
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm run build
+```
 
-### Code Splitting
+GitHub Pages deploys automatically on push to `main` via `.github/workflows/deploy.yml` (uses HashRouter for routing).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Accounts & PostgreSQL database
 
-### Analyzing the Bundle Size
+User accounts and app data (notes, groups, quizzes, etc.) are stored in **PostgreSQL** via Prisma.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### One-time setup
 
-### Making a Progressive Web App
+```bash
+# 1) PostgreSQL (Docker — easiest)
+npm run db:up
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+# 2) Configure server (if you don't have server/.env yet)
+cp server/.env.example server/.env
 
-### Advanced Configuration
+# 3) Create tables + optional import from old JSON files
+npm run db:setup
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+# 4) Start API
+npm run server
+```
 
-### Deployment
+Frontend: `npm start` → register at `/register` or login at `/login`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+**Without Docker:** install PostgreSQL locally, create user/database, set `DATABASE_URL` in `server/.env`, then `npm run db:setup`.
 
-### `npm run build` fails to minify
+**GUI:** `cd server && npx prisma studio` (not phpMyAdmin — that's for MySQL only).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+File uploads (photos, PDFs) still use **IndexedDB** in the browser until cloud storage is added.
+
+## Data storage (browser)
+
+Per-user cache in **localStorage** (`studyhub_v1_<userId>`) syncs with the server. Offline edits are cached locally.

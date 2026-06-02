@@ -4,7 +4,7 @@ import Action from "../../components/Activegroups";
 
 function Dashboard() {
   return (
-    <div className="h-screen w-full bg-[#020d0c] overflow-hidden p-6 lg:p-10 font-sans">
+    <div className="h-screen w-full bg-transparent overflow-hidden p-6 lg:p-10 font-sans">
       <div className="shrink-0">
         <Cardstate />
       </div>
