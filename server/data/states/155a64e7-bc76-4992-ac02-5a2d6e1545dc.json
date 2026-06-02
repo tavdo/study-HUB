@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "groupMessages": true,
+    "studyReminders": true,
+    "theme": "მუქი ზურმხელი (ნაგულისხმევი)",
+    "tutorMode": true
+  },
+  "notes": [],
+  "library": [],
+  "users": [],
+  "groups": [],
+  "activeGroupId": null,
+  "aiChats": [],
+  "activeAiChatId": null,
+  "studyHours": 0,
+  "quizzes": [],
+  "activeQuizId": null
+}

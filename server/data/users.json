@@ -1,0 +1,11 @@
+{
+  "users": [
+    {
+      "id": "155a64e7-bc76-4992-ac02-5a2d6e1545dc",
+      "email": "test@studyhub.ge",
+      "passwordHash": "$2a$10$P.LWUj96Rp7CvyZfgLEF0ufp9BMmFt1TNNs9d9VWQxuXBa9VlPcly",
+      "name": "ტესტი",
+      "createdAt": "2026-06-02T20:24:28.738Z"
+    }
+  ]
+}
