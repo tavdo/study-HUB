@@ -60,7 +60,9 @@ Now quiz generation + AI chat will use Ollama when available, and fall back to t
 npm run build
 ```
 
-GitHub Pages deploys automatically on push to `main` via `.github/workflows/deploy.yml` (uses HashRouter for routing).
+**Railway (full app — auth + DB):** see [docs/RAILWAY.md](docs/RAILWAY.md). Connect GitHub repo `tavdo/study-HUB`, add PostgreSQL, set `DATABASE_URL` + `JWT_SECRET`.
+
+GitHub Pages (`deploy.yml`) deploys **UI only** — login/API will not work there without a separate backend.
 
 ## Accounts & PostgreSQL database
 

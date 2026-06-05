@@ -3,7 +3,7 @@ import { useStudyHub } from "../../context/StudyHubContext";
 import ka from "../../i18n/ka";
 
 function Quiz() {
-  const { quizzes, activeQuizId, setActiveQuizId } = useStudyHub();
+  const { quizzes, activeQuizId, setActiveQuizId, recordQuizAttempt } = useStudyHub();
   const active = useMemo(
     () => (quizzes || []).find((q) => q.id === activeQuizId) || (quizzes || [])[0] || null,
     [quizzes, activeQuizId]
@@ -93,7 +93,15 @@ function Quiz() {
               </button>
               <button
                 type="button"
-                onClick={() => setSubmitted(true)}
+                onClick={() => {
+                  let correct = 0;
+                  for (const q of active.questions || []) {
+                    if (answers[q.id] === q.answerIndex) correct += 1;
+                  }
+                  const total = (active.questions || []).length;
+                  setSubmitted(true);
+                  recordQuizAttempt(active.id, correct, total);
+                }}
                 className="px-6 py-2 rounded-xl bg-emerald-500 text-[#020d0c] text-xs font-black uppercase hover:bg-emerald-400"
               >
                 {ka.quiz.submit}

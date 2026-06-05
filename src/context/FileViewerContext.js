@@ -8,6 +8,7 @@ import {
 import { getFileBlob } from "../utils/fileStorage";
 import {
   getYouTubeEmbedUrl,
+  isExternalHttpUrl,
   normalizeUrl,
   downloadBlob,
 } from "../utils/fileHelpers";
@@ -19,6 +20,7 @@ export function FileViewerProvider({ children }) {
   const [viewer, setViewer] = useState(null);
   const [blobUrl, setBlobUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const closeViewer = useCallback(() => {
     setViewer(null);
@@ -29,18 +31,34 @@ export function FileViewerProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!viewer?.fileId) {
+    if (!viewer?.fileId && !viewer?.serverFileId) {
       setBlobUrl(null);
       return undefined;
     }
 
     let cancelled = false;
     setLoading(true);
+    setLoadError("");
 
-    getFileBlob(viewer.fileId)
+    const load = async () => {
+      if (viewer.serverFileId) {
+        const { fetchServerFileBlob } = await import("../utils/serverUpload");
+        return fetchServerFileBlob(viewer.serverFileId);
+      }
+      return getFileBlob(viewer.fileId);
+    };
+
+    load()
       .then((blob) => {
-        if (cancelled || !blob) return;
+        if (cancelled) return;
+        if (!blob) {
+          setLoadError(ka.fileViewer.notFound);
+          return;
+        }
         setBlobUrl(URL.createObjectURL(blob));
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(ka.fileViewer.notFound);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -49,7 +67,7 @@ export function FileViewerProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [viewer?.fileId]);
+  }, [viewer?.fileId, viewer?.serverFileId]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -62,7 +80,19 @@ export function FileViewerProvider({ children }) {
   const openLibraryItem = useCallback((item) => {
     if (!item) return;
 
-    if (item.url) {
+    if (item.serverFileId || item.fileId) {
+      setViewer({
+        mode: "file",
+        title: item.title || item.name,
+        fileId: item.fileId,
+        serverFileId: item.serverFileId,
+        type: item.type,
+        mimeType: item.mimeType,
+      });
+      return;
+    }
+
+    if (item.url && isExternalHttpUrl(item.url)) {
       const url = normalizeUrl(item.url);
       const embed = getYouTubeEmbedUrl(url);
       if (embed) {
@@ -78,17 +108,6 @@ export function FileViewerProvider({ children }) {
       return;
     }
 
-    if (item.fileId) {
-      setViewer({
-        mode: "file",
-        title: item.title,
-        fileId: item.fileId,
-        type: item.type,
-        mimeType: item.mimeType,
-      });
-      return;
-    }
-
     if (item.type === "video") {
       alert(ka.fileViewer.sampleVideo);
       return;
@@ -98,8 +117,14 @@ export function FileViewerProvider({ children }) {
   }, []);
 
   const handleDownload = async () => {
-    if (!viewer?.fileId) return;
-    const blob = await getFileBlob(viewer.fileId);
+    if (!viewer?.fileId && !viewer?.serverFileId) return;
+    let blob = null;
+    if (viewer.serverFileId) {
+      const { fetchServerFileBlob } = await import("../utils/serverUpload");
+      blob = await fetchServerFileBlob(viewer.serverFileId);
+    } else {
+      blob = await getFileBlob(viewer.fileId);
+    }
     if (blob) downloadBlob(blob, viewer.title || "download");
   };
 
@@ -131,7 +156,7 @@ export function FileViewerProvider({ children }) {
     if (!blobUrl) {
       return (
         <p className="text-red-400 text-center py-20">
-          {ka.fileViewer.notFound}
+          {loadError || ka.fileViewer.notFound}
         </p>
       );
     }
@@ -217,7 +242,7 @@ export function FileViewerProvider({ children }) {
                 {viewer.title}
               </h3>
               <div className="flex gap-2 shrink-0">
-                {viewer.fileId && (
+                {(viewer.fileId || viewer.serverFileId) && (
                   <button
                     type="button"
                     onClick={handleDownload}

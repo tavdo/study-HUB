@@ -1,22 +1,40 @@
 import { useEffect, useState } from "react";
 import { getFileBlob } from "../utils/fileStorage";
 import { useFileViewer } from "../context/FileViewerContext";
+import { isExternalHttpUrl } from "../utils/fileHelpers";
+
+async function loadAttachmentBlob(attachment) {
+  if (attachment?.serverFileId) {
+    const { fetchServerFileBlob } = await import("../utils/serverUpload");
+    return fetchServerFileBlob(attachment.serverFileId);
+  }
+  if (attachment?.fileId) {
+    return getFileBlob(attachment.fileId);
+  }
+  return null;
+}
 
 function ChatAttachment({ attachment }) {
   const { openLibraryItem } = useFileViewer();
   const [thumb, setThumb] = useState(null);
 
   useEffect(() => {
-    if (!attachment?.fileId) return undefined;
-    let url = null;
-    getFileBlob(attachment.fileId).then((blob) => {
-      if (blob && (attachment.type === "image" || blob.type?.startsWith("image/"))) {
-        url = URL.createObjectURL(blob);
-        setThumb(url);
+    if (!attachment?.fileId && !attachment?.serverFileId) return undefined;
+
+    let objectUrl = null;
+    let cancelled = false;
+
+    loadAttachmentBlob(attachment).then((blob) => {
+      if (cancelled || !blob) return;
+      if (attachment.type === "image" || blob.type?.startsWith("image/")) {
+        objectUrl = URL.createObjectURL(blob);
+        setThumb(objectUrl);
       }
     });
+
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [attachment]);
 
@@ -24,7 +42,7 @@ function ChatAttachment({ attachment }) {
 
   const open = () => openLibraryItem(attachment);
 
-  if (attachment.url) {
+  if (attachment.url && isExternalHttpUrl(attachment.url)) {
     return (
       <button
         type="button"

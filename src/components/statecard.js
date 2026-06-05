@@ -39,9 +39,9 @@ function Cardstate() {
       <div className="mb-10 ml-2 text-left">
         <h1 className="text-4xl text-white font-black leading-tight tracking-tighter">
           {ka.dashboard.welcome}{" "}
-          <span className="text-emerald-500">{profile.name.split(" ")[0]}</span>
+          <span className="text-study-accent">{profile.name.split(" ")[0]}</span>
         </h1>
-        <p className="text-emerald-100/40 mt-2 text-lg font-medium">
+        <p className="text-study-muted mt-2 text-lg font-medium">
           {ka.dashboard.subtitle}
         </p>
       </div>
@@ -50,11 +50,11 @@ function Cardstate() {
         {statsData.map((item) => (
           <div
             key={item.id}
-            className="group relative bg-gradient-to-br from-[#0a1f1c] to-[#040d0c] p-6 rounded-[2.5rem] border border-emerald-900/20 flex flex-col items-start transition-all duration-300 hover:scale-[1.02] hover:border-emerald-500/30 shadow-2xl overflow-hidden"
+            className="group relative sh-surface p-6 rounded-[2.5rem] border flex flex-col items-start transition-all duration-300 hover:scale-[1.02] hover:border-study-accent/30 shadow-xl overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all"></div>
 
-            <h3 className="text-4xl text-emerald-400 font-black tracking-tighter leading-none mb-3">
+            <h3 className="text-4xl text-study-accent font-black tracking-tighter leading-none mb-3">
               {item.value}
             </h3>
 

@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useStudyHub } from "../context/StudyHubContext";
+import { useToast } from "../context/ToastContext";
+import { useI18n } from "../i18n";
+import { apiFetch } from "../utils/api";
 import ka from "../i18n/ka";
 
 const SettingsPage = () => {
   const { user, logout, updateAccountName } = useAuth();
   const navigate = useNavigate();
   const { profile, settings, updateProfile, updateSettings } = useStudyHub();
+  const { toast } = useToast();
+  const { locale, setLocale, t } = useI18n();
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
   const [saved, setSaved] = useState(false);
@@ -136,6 +141,11 @@ const SettingsPage = () => {
                     <p className="text-xs text-emerald-500/40 font-medium">
                       {item.desc}
                     </p>
+                    {item.key === "tutorMode" && (
+                      <p className="text-[10px] text-emerald-500/30 mt-1">
+                        {ka.settings.tutorModeHint}
+                      </p>
+                    )}
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -162,11 +172,25 @@ const SettingsPage = () => {
               <select
                 value={settings.theme}
                 onChange={(e) => updateSettings({ theme: e.target.value })}
-                className="w-full bg-[#020d0c] border border-emerald-900/30 rounded-2xl py-4 px-6 text-emerald-50 font-bold outline-none cursor-pointer"
+                className="w-full bg-[#020d0c] border border-emerald-900/30 rounded-2xl py-4 px-6 text-emerald-50 font-bold outline-none cursor-pointer mb-4"
               >
                 <option>{ka.settings.themeDark}</option>
                 <option>{ka.settings.themeOnyx}</option>
                 <option>{ka.settings.themeMint}</option>
+              </select>
+              <label className="block text-[10px] font-black text-emerald-500/50 uppercase tracking-widest mb-2 ml-2">
+                {t("settings.language")}
+              </label>
+              <select
+                value={locale}
+                onChange={(e) => {
+                  setLocale(e.target.value);
+                  updateSettings({ locale: e.target.value });
+                }}
+                className="w-full bg-[#020d0c] border border-emerald-900/30 rounded-2xl py-4 px-6 text-emerald-50 font-bold outline-none cursor-pointer"
+              >
+                <option value="ka">{t("settings.langKa")}</option>
+                <option value="en">{t("settings.langEn")}</option>
               </select>
             </section>
 
@@ -178,7 +202,7 @@ const SettingsPage = () => {
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={() => alert(ka.settings.passwordChangeSoon)}
+                  onClick={() => setModal("password")}
                   className="w-full text-left bg-[#0a2622] hover:bg-emerald-500/10 border border-emerald-900/20 py-4 px-6 rounded-2xl font-bold text-emerald-50"
                 >
                   {ka.settings.changePassword}
@@ -249,16 +273,27 @@ const SettingsPage = () => {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    passwordForm.next &&
-                    passwordForm.next === passwordForm.confirm
+                    !passwordForm.next ||
+                    passwordForm.next !== passwordForm.confirm
                   ) {
+                    toast(ka.settings.passwordsMustMatch, "error");
+                    return;
+                  }
+                  try {
+                    await apiFetch("/api/auth/password", {
+                      method: "PATCH",
+                      body: JSON.stringify({
+                        currentPassword: passwordForm.current,
+                        newPassword: passwordForm.next,
+                      }),
+                    });
                     setModal(null);
                     setPasswordForm({ current: "", next: "", confirm: "" });
-                    alert(ka.settings.passwordUpdated);
-                  } else {
-                    alert(ka.settings.passwordsMustMatch);
+                    toast(t("settings.passwordUpdated"), "success");
+                  } catch (e) {
+                    toast(e.message || ka.settings.passwordsMustMatch, "error");
                   }
                 }}
                 className="flex-1 bg-emerald-500 text-[#020d0c] py-3 rounded-xl font-black"

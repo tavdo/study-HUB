@@ -8,17 +8,28 @@ import Library from "../pages/Libery/Library";
 import Group from "../pages/Group/Groups";
 import User from "../pages/users/user";
 import Quiz from "../pages/Quiz/Quiz";
+import Flashcards from "../pages/Flashcards/Flashcards";
+import AdminPanel from "../pages/Admin/AdminPanel";
 import Landing from "../components/landing";
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
 import ProtectedRoute from "./ProtectedRoute";
+import AdminRoute from "./AdminRoute";
+import StudyTimer from "./StudyTimer";
+import SyncBadge from "./SyncBadge";
+import Omnibar from "./Omnibar";
+import ThemeEffect from "./ThemeEffect";
 import { StudyHubProvider } from "../context/StudyHubContext";
 import { useAuth } from "../context/AuthContext";
-import ka from "../i18n/ka";
+import { useI18n } from "../i18n";
 
 function AppShell({ children, showSidebar }) {
+  const { t } = useI18n();
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#020d0c] relative">
+    <div className="flex h-screen overflow-hidden bg-study-bg relative">
+      <ThemeEffect />
+      <Omnibar />
       <div className="animated-bg pointer-events-none" aria-hidden="true">
         <div className="animated-bg__grid" />
         <div className="animated-bg__stripes" />
@@ -29,19 +40,21 @@ function AppShell({ children, showSidebar }) {
       </div>
 
       {showSidebar && (
-        <div className="w-64 bg-[#051614] flex flex-col border-r border-emerald-900/30 shadow-xl shrink-0 relative z-20">
-          <div className="p-6">
-            <h1 className="text-left text-emerald-500 text-xl font-black mb-6 uppercase tracking-[0.2em] drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-              {ka.brand}
+        <div className="w-64 sh-sidebar flex flex-col border-r shadow-xl shrink-0 relative z-20">
+          <div className="p-6 pb-2">
+            <h1 className="text-left text-study-accent text-xl font-black mb-2 uppercase tracking-[0.2em]">
+              {t("brand")}
             </h1>
+            <SyncBadge />
             <Navigation />
           </div>
+          <StudyTimer />
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto bg-transparent relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#020d0c]/70 via-[#020d0c]/55 to-[#020d0c]/75 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-study-bg/80 via-study-bg/50 to-study-bg/70 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-study-accent/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="relative z-10">{children}</div>
       </div>
     </div>
@@ -63,6 +76,15 @@ function ProtectedApp() {
           <Route path="/library" element={<Library />} />
           <Route path="/user" element={<User />} />
           <Route path="/quiz" element={<Quiz />} />
+          <Route path="/flashcards" element={<Flashcards />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPanel />
+              </AdminRoute>
+            }
+          />
         </Routes>
       </AppShell>
     </StudyHubProvider>

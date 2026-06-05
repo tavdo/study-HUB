@@ -42,6 +42,7 @@ function Group() {
       const entry = await fileToLibraryEntry(file);
       sendGroupMessage(activeGroup.id, "", {
         fileId: entry.fileId,
+        serverFileId: entry.serverFileId,
         name: entry.title,
         type: entry.type,
         mimeType: entry.mimeType,

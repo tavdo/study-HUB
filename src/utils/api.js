@@ -1,3 +1,5 @@
+import { apiUrl } from "./apiBase";
+
 const TOKEN_KEY = "studyhub_token";
 
 export function getToken() {
@@ -19,7 +21,7 @@ export async function apiFetch(path, options = {}) {
     ...options.headers,
   };
 
-  const res = await fetch(path, { ...options, headers });
+  const res = await fetch(apiUrl(path), { ...options, headers });
   let data = null;
   const text = await res.text();
   if (text) {

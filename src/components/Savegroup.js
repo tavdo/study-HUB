@@ -1,26 +1,45 @@
 import { useState } from "react";
 import search from "../ficture/search.png";
-import add from "../ficture/plus-sign.png";
+import IconAddButton from "./IconAddButton";
 import { useStudyHub } from "../context/StudyHubContext";
+import { useToast } from "../context/ToastContext";
+import { useI18n } from "../i18n";
 import ka from "../i18n/ka";
 
 function Savegroup() {
-  const { groups, activeGroupId, setActiveGroupId, addGroup } = useStudyHub();
+  const { groups, activeGroupId, setActiveGroupId, addGroup, joinGroup } =
+    useStudyHub();
+  const { toast } = useToast();
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState("");
+  const [joinCode, setJoinCode] = useState("");
 
   const filtered = groups.filter((g) =>
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const active = groups.find((g) => g.id === activeGroupId);
 
   const handleAddGroup = () => {
     const name = prompt(ka.groups.groupNamePrompt);
     if (name?.trim()) addGroup(name.trim());
   };
 
+  const handleJoin = async () => {
+    if (!joinCode.trim()) return;
+    try {
+      await joinGroup(joinCode.trim());
+      toast(t("groups.joined"), "success");
+      setJoinCode("");
+    } catch (e) {
+      toast(e.message || t("groups.joinFailed"), "error");
+    }
+  };
+
   return (
     <div className="w-80 h-screen bg-[#051614] border-r border-emerald-900/20 flex flex-col shadow-2xl shrink-0">
       <header className="p-6 border-b border-emerald-900/10">
-        <div className="relative flex items-center w-full gap-3">
+        <div className="relative flex items-center w-full gap-3 mb-4">
           <div className="relative flex-1">
             <img
               src={search}
@@ -35,14 +54,30 @@ function Savegroup() {
               className="w-full bg-[#020d0c] border border-emerald-900/30 rounded-xl py-2.5 pl-11 pr-4 text-sm text-emerald-50 outline-none focus:border-emerald-500/40"
             />
           </div>
-          <button type="button" onClick={handleAddGroup} className="shrink-0">
-            <img
-              src={add}
-              alt={ka.groups.addGroup}
-              className="w-10 h-10 p-2.5 bg-emerald-500 rounded-xl hover:bg-emerald-400"
-            />
+          <IconAddButton onClick={handleAddGroup} label={ka.groups.addGroup} />
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            placeholder={t("groups.joinPlaceholder")}
+            className="flex-1 bg-[#020d0c] border border-emerald-900/30 rounded-xl py-2 px-3 text-xs text-emerald-50 outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleJoin}
+            className="px-3 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs font-black"
+          >
+            {t("groups.join")}
           </button>
         </div>
+        {active?.inviteCode && (
+          <p className="text-[10px] text-emerald-500/50 mt-3 font-bold">
+            {t("groups.inviteCode")}:{" "}
+            <span className="text-emerald-400">{active.inviteCode}</span>
+          </p>
+        )}
       </header>
 
       <main className="flex-1 overflow-y-auto custom-scrollbar">
@@ -70,7 +105,7 @@ function Savegroup() {
                 </p>
               </div>
             </div>
-            {group.messages.length > 0 && (
+            {group.messages?.length > 0 && (
               <div className="w-5 h-5 bg-emerald-500 rounded-lg flex items-center justify-center">
                 <span className="text-[#020d0c] text-[10px] font-black">
                   {group.messages.length > 9 ? "9+" : group.messages.length}

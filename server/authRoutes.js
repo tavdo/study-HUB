@@ -6,10 +6,12 @@ import {
   findUserById,
   getUserState,
   publicUser,
+  resolveRoleForNewUser,
   saveUserState,
   updateUserName,
 } from "./db.js";
 import { requireAuth, signToken } from "./authMiddleware.js";
+import { prisma } from "./prisma.js";
 
 const router = Router();
 
@@ -30,6 +32,10 @@ const defaultAppState = () => ({
   studyHours: 0,
   quizzes: [],
   activeQuizId: null,
+  quizAttempts: [],
+  flashcards: [],
+  studyPacks: [],
+  locale: "ka",
 });
 
 function validateEmail(email) {
@@ -49,10 +55,12 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(String(password), 10);
+    const role = await resolveRoleForNewUser(email);
     const user = await createUser({
       email,
       passwordHash,
       name,
+      role,
       initialState: defaultAppState(),
     });
 
@@ -130,6 +138,36 @@ router.put("/state", requireAuth, async (req, res) => {
     // eslint-disable-next-line no-console
     console.error("put state", e);
     res.status(500).json({ error: "მონაცემების შენახვა ვერ მოხერხდა" });
+  }
+});
+
+router.patch("/password", requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!newPassword || String(newPassword).length < 6) {
+      return res
+        .status(400)
+        .json({ error: "ახალი პაროლი მინიმუმ 6 სიმბოლო" });
+    }
+    const user = await findUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "მომხმარებელი ვერ მოიძებნა" });
+    }
+    const ok = await bcrypt.compare(
+      String(currentPassword || ""),
+      user.passwordHash
+    );
+    if (!ok) {
+      return res.status(401).json({ error: "მიმდინარე პაროლი არასწორია" });
+    }
+    const passwordHash = await bcrypt.hash(String(newPassword), 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "პაროლის შეცვლა ვერ მოხერხდა" });
   }
 });
 

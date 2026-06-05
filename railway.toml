@@ -1,0 +1,11 @@
+# Railway — one service: React build + Express API + PostgreSQL addon
+# https://docs.railway.com/guides/monorepo
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm ci && npm run build && cd server && npm ci && npx prisma generate"
+
+[deploy]
+startCommand = "cd server && npm run start:prod"
+healthcheckPath = "/api/health"
+restartPolicyType = "on_failure"

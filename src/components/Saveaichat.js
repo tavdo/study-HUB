@@ -1,6 +1,6 @@
 import search from "../ficture/search.png";
-import add from "../ficture/plus-sign.png";
 import AI from "../ficture/ai-technology.png";
+import IconAddButton from "./IconAddButton";
 import { useState } from "react";
 import { useStudyHub } from "../context/StudyHubContext";
 import ka from "../i18n/ka";
@@ -24,13 +24,7 @@ function SaveAichat() {
               {ka.ai.chatTitle}
             </h2>
           </div>
-          <button type="button" onClick={createAiChat}>
-            <img
-              src={add}
-              alt={ka.ai.newChat}
-              className="w-10 h-10 p-2.5 bg-emerald-500 rounded-xl hover:bg-emerald-400"
-            />
-          </button>
+          <IconAddButton onClick={createAiChat} label={ka.ai.newChat} />
         </div>
 
         <div className="relative">

@@ -9,11 +9,21 @@ import { useStudyHub } from "../../context/StudyHubContext";
 import { useFileViewer } from "../../context/FileViewerContext";
 import { fileToLibraryEntry } from "../../utils/fileHelpers";
 import { generateQuizFromText } from "../../utils/quizService";
+import StudyPackButton from "../../components/StudyPackButton";
 import { useNavigate } from "react-router-dom";
 import ka from "../../i18n/ka";
 
 function Notes() {
-  const { notes, addNote, updateNote, deleteNote, addLibraryFile, addQuiz, settings } = useStudyHub();
+  const {
+    notes,
+    library,
+    addNote,
+    updateNote,
+    deleteNote,
+    addLibraryFile,
+    addQuiz,
+    settings,
+  } = useStudyHub();
   const { openLibraryItem } = useFileViewer();
   const navigate = useNavigate();
   const [activeId, setActiveId] = useState(null);
@@ -125,6 +135,17 @@ function Notes() {
     alert(ka.notes.copied);
   };
 
+  const resolveAttachment = (att) => {
+    if (att?.serverFileId || att?.fileId) return att;
+    const match = library.find(
+      (f) =>
+        f.title === att?.name &&
+        f.type === att?.type &&
+        (f.serverFileId || f.fileId)
+    );
+    return match ? { ...att, ...match } : att;
+  };
+
   const attachPhoto = async (fileList) => {
     const file = fileList?.[0];
     if (!file) return;
@@ -133,6 +154,7 @@ function Notes() {
       addLibraryFile(entry);
       const att = {
         fileId: entry.fileId,
+        serverFileId: entry.serverFileId,
         name: entry.title,
         type: entry.type,
         mimeType: entry.mimeType,
@@ -195,8 +217,8 @@ function Notes() {
         activeId={activeId}
       />
 
-      <div className="flex-1 flex flex-col h-full bg-transparent">
-        <header className="p-4 border-b border-emerald-900/20 bg-[#051614] flex justify-between items-center shadow-md">
+      <div className="flex-1 flex flex-col h-full bg-study-bg/30">
+        <header className="p-4 border-b border-study-border sh-panel flex justify-between items-center">
           <div className="flex items-center gap-4 px-4">
             <button
               type="button"
@@ -226,18 +248,22 @@ function Notes() {
               type="button"
               title={ka.notes.photo}
               onClick={() => photoInputRef.current?.click()}
-              className="px-3 py-1 text-xs font-bold uppercase text-emerald-400 border border-emerald-800/40 rounded-lg hover:bg-emerald-900/30"
+              className="px-3 py-1 text-xs font-bold uppercase text-study-accent border border-study-border rounded-lg hover:bg-study-hover"
             >
               🖼 {ka.notes.photo}
             </button>
           </div>
 
           <div className="flex items-center gap-4">
+            <StudyPackButton
+              title={(title || "").trim() || ka.notes.untitled}
+              text={`${title}\n${content}`}
+            />
             <button
               type="button"
               onClick={handleGenerateQuiz}
               disabled={generatingQuiz || (!title.trim() && !content.trim())}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl border border-emerald-500/30 text-emerald-300 text-xs font-black uppercase hover:bg-emerald-500/10 disabled:opacity-40"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl border border-study-border text-study-accent text-xs font-black uppercase hover:bg-study-hover disabled:opacity-40"
               title={ka.notes.quiz}
             >
               {generatingQuiz ? ka.notes.generating : `🧠 ${ka.notes.quiz}`}
@@ -245,7 +271,7 @@ function Notes() {
             <button
               type="button"
               onClick={handleShare}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-950/30 border border-emerald-900/30 text-emerald-400 text-xs font-bold uppercase"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl sh-surface border text-study-muted text-xs font-bold uppercase hover:text-study-text"
             >
               <img src={share} alt="" className="w-3.5 h-3.5 opacity-70" />
               {ka.notes.share}
@@ -253,7 +279,7 @@ function Notes() {
             <button
               type="button"
               onClick={handSave}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#020d0c] text-xs font-black uppercase"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl sh-accent-btn text-xs font-black uppercase"
             >
               <img src={plane} alt="" className="w-3.5 h-3.5" />
               {activeId ? ka.notes.update : ka.notes.save}
@@ -274,10 +300,10 @@ function Notes() {
             <div className="flex flex-wrap gap-3 mb-6">
               {attachments.map((att, i) => (
                 <button
-                  key={`${att.fileId}-${i}`}
+                  key={`${att.serverFileId || att.fileId || att.name}-${i}`}
                   type="button"
-                  onClick={() => openLibraryItem(att)}
-                  className="px-4 py-2 bg-emerald-900/30 border border-emerald-700/30 rounded-xl text-sm text-emerald-300 hover:border-emerald-500/50"
+                  onClick={() => openLibraryItem(resolveAttachment(att))}
+                  className="px-4 py-2 sh-surface border rounded-xl text-sm text-study-accent hover:border-study-accent/40"
                 >
                   🖼 {att.name}
                 </button>
@@ -290,7 +316,7 @@ function Notes() {
             placeholder={ka.notes.placeholderBody}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="flex-1 text-emerald-100/70 text-xl leading-[1.8] outline-none resize-none w-full font-medium custom-scrollbar bg-transparent"
+            className="flex-1 text-study-muted text-lg leading-[1.8] outline-none resize-none w-full font-normal custom-scrollbar bg-transparent placeholder:text-study-muted/60"
           />
         </div>
       </div>

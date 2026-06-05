@@ -9,57 +9,7 @@ import {
 } from "react";
 import ka from "../i18n/ka";
 import { apiFetch } from "../utils/api";
-
-const DEFAULT_USERS = [
-  {
-    id: 1,
-    name: "Ana Beridze",
-    initials: "AB",
-    role: "Computer Science",
-    year: "3rd Year",
-    email: "ana.beridze@studyhub.ai",
-    status: "online",
-    type: "student",
-    courses: ["Data Structures", "Algorithms", "Web Development"],
-    groups: ["CS Study Group", "Project Team"],
-  },
-  {
-    id: 2,
-    name: "Giorgi Nikoladze",
-    initials: "GN",
-    role: "Mathematics",
-    year: "2nd Year",
-    email: "giorgi.n@studyhub.ai",
-    status: "online",
-    type: "student",
-    courses: ["Calculus II", "Linear Algebra", "Statistics"],
-    groups: ["Mathematics Help"],
-  },
-  {
-    id: 3,
-    name: "Mariam Gelashvili",
-    initials: "MG",
-    role: "Physics",
-    year: "4th Year",
-    email: "mariam.g@studyhub.ai",
-    status: "away",
-    type: "tutor",
-    courses: ["Quantum Mechanics", "Thermodynamics", "Lab Physics"],
-    groups: ["Physics 201", "Study Sessions"],
-  },
-  {
-    id: 4,
-    name: "Luka Kvaratskhelia",
-    initials: "LK",
-    role: "Chemistry",
-    year: "3rd Year",
-    email: "luka.k@studyhub.ai",
-    status: "offline",
-    type: "student",
-    courses: ["Organic Chemistry", "Biochemistry"],
-    groups: ["Chemistry Study"],
-  },
-];
+import { retentionScore, reviewCard } from "../utils/srs";
 
 function createWelcomeChat() {
   const id = `chat-${Date.now()}`;
@@ -67,11 +17,7 @@ function createWelcomeChat() {
     id,
     title: ka.context.welcomeChatTitle,
     messages: [
-      {
-        id: 1,
-        role: "assistant",
-        content: ka.context.welcomeMessage,
-      },
+      { id: 1, role: "assistant", content: ka.context.welcomeMessage },
     ],
   };
 }
@@ -92,7 +38,6 @@ function mergeSavedState(saved, user) {
   const base = saved && typeof saved === "object" ? saved : {};
   const aiChats = base.aiChats?.length ? base.aiChats : [welcomeChat];
   const activeAiChatId = base.activeAiChatId || aiChats[0]?.id;
-  const groups = base.groups?.length ? base.groups : [];
 
   return {
     profile: profileFromUser(user),
@@ -101,18 +46,22 @@ function mergeSavedState(saved, user) {
       studyReminders: true,
       theme: ka.settings.themeDark,
       tutorMode: true,
+      locale: "ka",
       ...base.settings,
     },
     notes: base.notes || [],
     library: base.library || [],
-    users: base.users?.length ? base.users : DEFAULT_USERS,
-    groups,
-    activeGroupId: base.activeGroupId ?? groups[0]?.id ?? null,
+    users: [],
+    groups: [],
+    activeGroupId: base.activeGroupId ?? null,
     aiChats,
     activeAiChatId,
     studyHours: base.studyHours ?? 0,
     quizzes: base.quizzes || [],
     activeQuizId: base.activeQuizId || null,
+    quizAttempts: base.quizAttempts || [],
+    flashcards: base.flashcards || [],
+    studyPacks: base.studyPacks || [],
   };
 }
 
@@ -126,6 +75,7 @@ const StudyHubContext = createContext(null);
 export function StudyHubProvider({ children, user }) {
   const [state, setState] = useState(() => mergeSavedState(null, user));
   const [hydrated, setHydrated] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("saved");
   const skipSaveRef = useRef(true);
   const userId = user?.id;
 
@@ -161,13 +111,43 @@ export function StudyHubProvider({ children, user }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when account changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   useEffect(() => {
     if (!userId || !user) return;
     setState((s) => ({ ...s, profile: profileFromUser(user) }));
   }, [userId, user]);
+
+  const refreshGroups = useCallback(async () => {
+    try {
+      const data = await apiFetch("/api/groups");
+      setState((s) => ({
+        ...s,
+        groups: data.groups || [],
+        activeGroupId: s.activeGroupId || data.groups?.[0]?.id || null,
+      }));
+    } catch {
+      /* keep local */
+    }
+  }, []);
+
+  const refreshUsers = useCallback(async () => {
+    try {
+      const data = await apiFetch("/api/users");
+      setState((s) => ({ ...s, users: data.users || [] }));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || !userId) return undefined;
+    refreshGroups();
+    refreshUsers();
+    const poll = setInterval(refreshGroups, 12000);
+    return () => clearInterval(poll);
+  }, [hydrated, userId, refreshGroups, refreshUsers]);
 
   useEffect(() => {
     if (!hydrated || !userId) return undefined;
@@ -178,13 +158,14 @@ export function StudyHubProvider({ children, user }) {
       return undefined;
     }
 
+    setSyncStatus("saving");
     const timer = setTimeout(() => {
       apiFetch("/api/auth/state", {
         method: "PUT",
         body: JSON.stringify({ state: stateForPersistence(state) }),
-      }).catch(() => {
-        /* offline — local cache remains */
-      });
+      })
+        .then(() => setSyncStatus("saved"))
+        .catch(() => setSyncStatus("offline"));
     }, 1200);
 
     return () => clearTimeout(timer);
@@ -219,70 +200,103 @@ export function StudyHubProvider({ children, user }) {
 
   const deleteLibraryFile = useCallback(async (id) => {
     let fileId = null;
+    let serverFileId = null;
     setState((s) => {
       const file = s.library.find((f) => f.id === id);
       fileId = file?.fileId;
-      return {
-        ...s,
-        library: s.library.filter((f) => f.id !== id),
-      };
+      serverFileId = file?.serverFileId;
+      return { ...s, library: s.library.filter((f) => f.id !== id) };
     });
-    if (fileId) {
+    if (serverFileId) {
+      try {
+        const { deleteServerFile } = await import("../utils/serverUpload");
+        await deleteServerFile(serverFileId);
+      } catch {
+        /* ignore */
+      }
+    } else if (fileId) {
       const { deleteFileBlob } = await import("../utils/fileStorage");
       await deleteFileBlob(fileId);
     }
-  }, []);
-
-  const addUser = useCallback((user) => {
-    setState((s) => ({ ...s, users: [...s.users, user] }));
   }, []);
 
   const setActiveGroupId = useCallback((id) => {
     setState((s) => ({
       ...s,
       activeGroupId: id,
-      groups: s.groups.map((g) =>
-        g.id === id ? { ...g, unread: 0 } : g
-      ),
+      groups: s.groups.map((g) => (g.id === id ? { ...g, unread: 0 } : g)),
     }));
   }, []);
 
-  const sendGroupMessage = useCallback((groupId, text, attachment = null) => {
+  const sendGroupMessage = useCallback(async (groupId, text, attachment = null) => {
     const trimmed = text?.trim() || "";
     if (!trimmed && !attachment) return;
-    const msg = {
-      id: Date.now(),
-      author: ka.groups.you,
-      isMe: true,
-      text: trimmed || (attachment?.name ? `📎 ${attachment.name}` : ""),
-      time: new Date().toLocaleTimeString("ka-GE", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      attachment: attachment || null,
-    };
-    setState((s) => ({
-      ...s,
-      groups: s.groups.map((g) =>
-        g.id === groupId
-          ? { ...g, messages: [...g.messages, msg] }
-          : g
-      ),
-    }));
+    try {
+      const data = await apiFetch(`/api/groups/${groupId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ text: trimmed, attachment }),
+      });
+      setState((s) => ({
+        ...s,
+        groups: s.groups.map((g) =>
+          g.id === groupId
+            ? { ...g, messages: [...(g.messages || []), data.message] }
+            : g
+        ),
+      }));
+    } catch {
+      const msg = {
+        id: Date.now(),
+        author: ka.groups.you,
+        isMe: true,
+        text: trimmed || (attachment?.name ? `📎 ${attachment.name}` : ""),
+        time: new Date().toLocaleTimeString("ka-GE", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        attachment: attachment || null,
+      };
+      setState((s) => ({
+        ...s,
+        groups: s.groups.map((g) =>
+          g.id === groupId ? { ...g, messages: [...g.messages, msg] } : g
+        ),
+      }));
+    }
   }, []);
 
-  const addGroup = useCallback((name) => {
-    const id = Date.now();
-    const letter = name.charAt(0).toUpperCase() || "G";
-    setState((s) => ({
-      ...s,
-      groups: [
-        ...s.groups,
-        { id, name, members: 1, letter, unread: 0, messages: [] },
-      ],
-      activeGroupId: id,
-    }));
+  const addGroup = useCallback(async (name) => {
+    try {
+      const data = await apiFetch("/api/groups", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      setState((s) => ({
+        ...s,
+        groups: [data.group, ...s.groups],
+        activeGroupId: data.group.id,
+      }));
+    } catch {
+      const id = `local-${Date.now()}`;
+      const letter = name.charAt(0).toUpperCase() || "G";
+      setState((s) => ({
+        ...s,
+        groups: [
+          ...s.groups,
+          { id, name, members: 1, letter, unread: 0, messages: [] },
+        ],
+        activeGroupId: id,
+      }));
+    }
   }, []);
+
+  const joinGroup = useCallback(async (inviteCode) => {
+    await apiFetch("/api/groups/join", {
+      method: "POST",
+      body: JSON.stringify({ inviteCode }),
+    });
+    await refreshGroups();
+  }, [refreshGroups]);
 
   const setActiveAiChatId = useCallback((id) => {
     setState((s) => ({ ...s, activeAiChatId: id }));
@@ -292,13 +306,7 @@ export function StudyHubProvider({ children, user }) {
     const chat = {
       id: `chat-${Date.now()}`,
       title: ka.context.newChat,
-      messages: [
-        {
-          id: 1,
-          role: "assistant",
-          content: ka.context.newChatGreeting,
-        },
-      ],
+      messages: [{ id: 1, role: "assistant", content: ka.context.newChatGreeting }],
     };
     setState((s) => ({
       ...s,
@@ -339,19 +347,69 @@ export function StudyHubProvider({ children, user }) {
     setState((s) => ({ ...s, activeQuizId: id }));
   }, []);
 
+  const recordQuizAttempt = useCallback((quizId, score, total) => {
+    const attempt = {
+      id: `att-${Date.now()}`,
+      quizId,
+      score,
+      total,
+      percent: total ? Math.round((score / total) * 100) : 0,
+      at: new Date().toISOString(),
+    };
+    setState((s) => ({
+      ...s,
+      quizAttempts: [attempt, ...(s.quizAttempts || [])].slice(0, 50),
+    }));
+  }, []);
+
+  const addStudyMinutes = useCallback((minutes) => {
+    if (!minutes) return;
+    setState((s) => ({
+      ...s,
+      studyHours: Math.round((s.studyHours + minutes / 60) * 10) / 10,
+    }));
+  }, []);
+
+  const addFlashcards = useCallback((cards) => {
+    setState((s) => ({
+      ...s,
+      flashcards: [...(cards || []), ...(s.flashcards || [])],
+    }));
+  }, []);
+
+  const reviewFlashcard = useCallback((id, quality) => {
+    setState((s) => ({
+      ...s,
+      flashcards: s.flashcards.map((c) =>
+        c.id === id ? reviewCard(c, quality) : c
+      ),
+    }));
+  }, []);
+
+  const addStudyPack = useCallback((pack) => {
+    setState((s) => ({
+      ...s,
+      studyPacks: [pack, ...(s.studyPacks || [])],
+    }));
+  }, []);
+
   const stats = useMemo(() => {
-    const onlineUsers = state.users.filter((u) => u.status === "online").length;
-    const activeGroups = state.groups.filter(
-      (g) => g.messages.length > 0
-    ).length;
-    const quizScore = state.notes.length > 0 ? Math.min(95, 70 + state.notes.length * 2) : 87;
+    const attempts = state.quizAttempts || [];
+    const avgQuiz =
+      attempts.length > 0
+        ? Math.round(
+            attempts.reduce((s, a) => s + a.percent, 0) / attempts.length
+          )
+        : null;
+    const activeGroups = state.groups.filter((g) => g.messages?.length > 0).length;
     return {
       totalNotes: state.notes.length,
       studyGroups: state.groups.length,
       activeGroupsNow: activeGroups,
       studyHours: state.studyHours,
-      quizScore: `${quizScore}%`,
-      onlineUsers,
+      quizScore: avgQuiz != null ? `${avgQuiz}%` : "—",
+      onlineUsers: state.users.length,
+      retention: retentionScore(state.flashcards),
     };
   }, [state]);
 
@@ -359,6 +417,7 @@ export function StudyHubProvider({ children, user }) {
     () => ({
       ...state,
       stats,
+      syncStatus,
       updateProfile,
       updateSettings,
       addNote,
@@ -366,15 +425,22 @@ export function StudyHubProvider({ children, user }) {
       deleteNote,
       addLibraryFile,
       deleteLibraryFile,
-      addUser,
       setActiveGroupId,
       sendGroupMessage,
       addGroup,
+      joinGroup,
+      refreshGroups,
+      refreshUsers,
       setActiveAiChatId,
       createAiChat,
       appendAiMessage,
       addQuiz,
       setActiveQuizId,
+      recordQuizAttempt,
+      addStudyMinutes,
+      addFlashcards,
+      reviewFlashcard,
+      addStudyPack,
       activeGroup:
         state.groups.find((g) => g.id === state.activeGroupId) || state.groups[0],
       activeAiChat:
@@ -384,6 +450,7 @@ export function StudyHubProvider({ children, user }) {
     [
       state,
       stats,
+      syncStatus,
       updateProfile,
       updateSettings,
       addNote,
@@ -391,15 +458,22 @@ export function StudyHubProvider({ children, user }) {
       deleteNote,
       addLibraryFile,
       deleteLibraryFile,
-      addUser,
       setActiveGroupId,
       sendGroupMessage,
       addGroup,
+      joinGroup,
+      refreshGroups,
+      refreshUsers,
       setActiveAiChatId,
       createAiChat,
       appendAiMessage,
       addQuiz,
       setActiveQuizId,
+      recordQuizAttempt,
+      addStudyMinutes,
+      addFlashcards,
+      reviewFlashcard,
+      addStudyPack,
     ]
   );
 

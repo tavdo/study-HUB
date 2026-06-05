@@ -7,13 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  student
+  tutor
+  admin
+}
+
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  passwordHash String        @map("password_hash")
+  id           String         @id @default(uuid())
+  email        String         @unique
+  passwordHash String         @map("password_hash")
   name         String
-  createdAt    DateTime      @default(now()) @map("created_at")
+  role         UserRole       @default(student)
+  createdAt    DateTime       @default(now()) @map("created_at")
   appState     UserAppState?
+  files        UploadedFile[]
+  groupMembers GroupMember[]
+  messages     GroupMessage[]
 
   @@map("users")
 }
@@ -26,4 +36,57 @@ model UserAppState {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_app_states")
+}
+
+model UploadedFile {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename   String
+  storedName String   @map("stored_name")
+  mimeType   String   @map("mime_type")
+  size       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("uploaded_files")
+}
+
+model StudyGroup {
+  id         String         @id @default(uuid())
+  name       String
+  inviteCode String         @unique @map("invite_code")
+  createdBy  String         @map("created_by")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  members    GroupMember[]
+  messages   GroupMessage[]
+
+  @@map("study_groups")
+}
+
+model GroupMember {
+  id       String     @id @default(uuid())
+  groupId  String     @map("group_id")
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String     @map("user_id")
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime   @default(now()) @map("joined_at")
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model GroupMessage {
+  id         String     @id @default(uuid())
+  groupId    String     @map("group_id")
+  group      StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId     String     @map("user_id")
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  authorName String     @map("author_name")
+  text       String     @default("")
+  attachment Json?
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@index([groupId])
+  @@map("group_messages")
 }

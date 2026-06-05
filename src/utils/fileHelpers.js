@@ -18,6 +18,13 @@ export function isValidUrl(url) {
   }
 }
 
+/** მხოლოდ გარე ბმულები (არა სერვერის /api/files/...) */
+export function isExternalHttpUrl(url) {
+  const trimmed = String(url || "").trim();
+  if (!trimmed || trimmed.startsWith("/")) return false;
+  return isValidUrl(trimmed);
+}
+
 export function getYouTubeEmbedUrl(url) {
   try {
     const u = new URL(normalizeUrl(url));
@@ -60,21 +67,24 @@ export function formatDate() {
 }
 
 export async function fileToLibraryEntry(file) {
-  const { saveFileBlob } = await import("./fileStorage");
-  const fileId = `file-${Date.now()}`;
-  const type = detectFileType(file);
-
-  await saveFileBlob(fileId, file);
-
-  return {
-    id: Date.now(),
-    fileId,
-    title: file.name,
-    date: formatDate(),
-    size: formatFileSize(file.size),
-    type,
-    mimeType: file.type,
-  };
+  try {
+    const { uploadFileToServer } = await import("./serverUpload");
+    return await uploadFileToServer(file);
+  } catch {
+    const { saveFileBlob } = await import("./fileStorage");
+    const fileId = `file-${Date.now()}`;
+    const type = detectFileType(file);
+    await saveFileBlob(fileId, file);
+    return {
+      id: Date.now(),
+      fileId,
+      title: file.name,
+      date: formatDate(),
+      size: formatFileSize(file.size),
+      type,
+      mimeType: file.type,
+    };
+  }
 }
 
 export function downloadBlob(blob, filename) {

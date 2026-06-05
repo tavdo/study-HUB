@@ -87,6 +87,7 @@ export function AuthProvider({ children }) {
       refreshUser,
       updateAccountName,
       isAuthenticated: Boolean(user),
+      isAdmin: user?.role === "admin",
     }),
     [user, loading, login, register, logout, refreshUser, updateAccountName]
   );
